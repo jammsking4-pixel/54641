@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Camera Stream Demo</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+</head>
+<body>
+    <h1>Network Camera Stream Demo</h1>
+    <p>With permission, this shares your camera over the network. Choose your role below.</p>
+    
+    <div id="roleSelection">
+        <button id="senderButton">I'm the Sender (Camera Device)</button>
+        <button id="receiverButton">I'm the Receiver (Viewing Device)</button>
+    </div>
+    
+    <div id="senderUI" style="display:none;">
+        <p>Click to start your camera. Share your Peer ID below with the receiver.</p>
+        <button id="startCamera">Start Camera</button>
+        <p>Your Peer ID: <span id="myId"></span></p>
+        <video id="localVideo" width="320" height="240" autoplay muted></video>
+    </div>
+    
+    <div id="receiverUI" style="display:none;">
+        <p>Enter the sender's Peer ID and connect.</p>
+        <input type="text" id="remoteId" placeholder="Enter Sender's Peer ID">
+        <button id="connectButton">Connect and View Stream</button>
+        <video id="remoteVideo" width="320" height="240" autoplay></video>
+    </div>
+    
+    <script>
+        const roleSelection = document.getElementById('roleSelection');
+        const senderUI = document.getElementById('senderUI');
+        const receiverUI = document.getElementById('receiverUI');
+        const senderButton = document.getElementById('senderButton');
+        const receiverButton = document.getElementById('receiverButton');
+        const startCamera = document.getElementById('startCamera');
+        const connectButton = document.getElementById('connectButton');
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        const myIdSpan = document.getElementById('myId');
+        const remoteIdInput = document.getElementById('remoteId');
+        
+        let peer;
+        let localStream;
+        
+        // Role selection
+        senderButton.addEventListener('click', () => {
+            roleSelection.style.display = 'none';
+            senderUI.style.display = 'block';
+            peer = new Peer();  // Unique ID generated
+            peer.on('open', (id) => {
+                myIdSpan.textContent = id;
+            });
+        });
+        
+        receiverButton.addEventListener('click', () => {
+            roleSelection.style.display = 'none';
+            receiverUI.style.display = 'block';
+            peer = new Peer();
+            peer.on('call', (call) => {
+                call.answer();
+                call.on('stream', (remoteStream) => {
+                    remoteVideo.srcObject = remoteStream;
+                });
+            });
+        });
+        
+        // Sender: Start camera and call receiver
+        startCamera.addEventListener('click', async () => {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                localVideo.srcObject = localStream;
+                const remoteId = prompt('Enter Receiver\'s Peer ID (or share yours first):');
+                if (remoteId) {
+                    const call = peer.call(remoteId, localStream);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Camera access denied.');
+            }
+        });
+        
+        // Receiver: Connect manually (though auto-handled via 'call' event)
+        connectButton.addEventListener('click', () => {
+            // This is optional; the 'call' event handles incoming calls
+            alert('Connection is automatic when sender calls. Ensure IDs are exchanged.');
+        });
+    </script>
+</body>
+</html>
